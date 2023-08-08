@@ -1,27 +1,47 @@
-<div>
-  <%= form_with model: @plan, url: calendars_path, class: 'form' do |f| %>
-    <%= f.label :日付を選択, class: 'lavel' %>
-    <%= f.date_field :date, class: 'date-select' %>
-    <%= f.label :予定を入力, class: 'lavel' %>
-    <%= f.text_field :plan, class: 'text-input' %>
-    <%= f.submit '保存' %>
-  <% end %>
-</div>
-<div>
-  <div class='calendar'>
-    <% @week_days.each do |day| %>
-      <div class='item'>
-        <div class='date'>
-          <% day[:month] %>/<% day[:date] %>
-        </div>
-        <ul class='content'>
-        <% if day[:plans].length != 0 %>
-          <% day[:plans].each do |plan| %>
-            <li class='plan-list'>・<%= plan %></li>
-          <% end %>
-        <% end %>
-        </ul>
-      </div>
-    <% end %>
-  </div>
-</div>
+class CalendarsController < ApplicationController
+  def index
+    get_week
+    @plan = Plan.new
+  end
+
+  def create
+    Plan.create(plan_params)
+    redirect_to action: :index
+  end
+
+  private
+
+  def plan_params
+    params.require(:calendars).permit(:date, :plan)
+  end
+
+  def get_week
+    wdays = ['(日)','(月)','(火)','(水)','(木)','(金)','(土)']
+
+    @todays_date = Date.today
+
+    @week_days = []
+
+    plans = Plan.where(date: @todays_date..@todays_date + 6)
+
+    7.times do |x|
+      today_plans = []
+      plans.each do |plan|
+        today_plans.push(plan.plan) if plan.date == @todays_date + x
+      end
+
+      wday_num = (@todays_date + x).wday
+      if wday_num >= 7
+        wday_num -= 7
+      end
+
+      days = {
+        month: (@todays_date + x).month,
+        date: (@todays_date + x).day,
+        plans: today_plans,
+        wday: wdays[wday_num]
+      }
+      @week_days.push(days)
+    end
+  end
+end
